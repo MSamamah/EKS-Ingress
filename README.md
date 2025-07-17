@@ -1,4 +1,4 @@
-# Deploying Applications on AWS EKS
+# AWS EKS App Deployment with Ingress Gateway and Load Balancing
 
 ## Introduction
 
