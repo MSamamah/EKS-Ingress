@@ -2,8 +2,6 @@
 
 ## Introduction
 
-## Introduction
-
 This guide walks you through deploying applications on **Amazon Elastic Kubernetes Service (EKS)** and making them **securely accessible from the internet** using **Ingress controllers**. You'll go from setting up your AWS environment and Kubernetes cluster to building containerized applications, deploying them on EKS, and configuring Ingress to expose them to users.
 
 Whether you're building internal APIs or public-facing services, understanding how to manage **Ingress resources** is essential for production-grade cloud-native infrastructure. This guide focuses on **Ingress setup using AWS Load Balancer Controller** and **best practices** for secure, scalable exposure of Kubernetes services.
