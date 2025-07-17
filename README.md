@@ -8,6 +8,12 @@ Whether you're building internal APIs or public-facing services, understanding h
 
 
 ---
+## Architecture Diagram
+
+![Architecture Diagram](./architecture.png)
+
+
+---
 
 ## Table of Contents
 
