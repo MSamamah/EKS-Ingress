@@ -10,7 +10,8 @@ Whether you're building internal APIs or public-facing services, understanding h
 ---
 ## Architecture Diagram
 
-![EKS Architecture Diagram](./eks-architecture.png)
+![EKS Ingress Architecture](./EKS_Ingress%20architecture.png)
+
 
 
 
