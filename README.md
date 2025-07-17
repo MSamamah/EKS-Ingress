@@ -1,219 +1,237 @@
-# AWS EKS 
+# Deploying Applications on AWS EKS
 
 ## Introduction
 
-## Table of Contents:
+This guide provides a complete walkthrough for setting up **Amazon Elastic Kubernetes Service (EKS)**, preparing your AWS environment, and deploying containerized applications to a production-ready Kubernetes cluster.
 
-1. [Understanding Kubernetes Fundamentals](#understanding-kubernetes-fundamentals)
-   - 1.1 [EKS vs. Self-Managed Kubernetes: Pros and Cons](#eks-vs-self-managed-kubernetes-pros-and-cons)
+---
 
-2. [Setting up your AWS Environment for EKS](#setting-up-your-aws-environment-for-eks)
-   - 2.1 [Creating an AWS Account and Setting up IAM Users](#creating-an-aws-account-and-setting-up-iam-users)
-   - 2.2 [Configuring the AWS CLI and kubectl](#configuring-the-aws-cli-and-kubectl)
-   - 2.3 [Preparing Networking and Security Groups for EKS](#preparing-networking-and-security-groups-for-eks)
+## Table of Contents
 
-3. [Launching your First EKS Cluster](#launching-your-first-eks-cluster)
-   - 3.1 [Using the EKS Console for Cluster Creation](#using-the-eks-console-for-cluster-creation)
-   - 3.2 [Launching an EKS Cluster via AWS CLI](#launching-an-eks-cluster-via-aws-cli)
-   - 3.3 [Authenticating with the EKS Cluster](#authenticating-with-the-eks-cluster)
+1. [Kubernetes Essentials](#kubernetes-essentials)  
+   - 1.1 [EKS vs. DIY Kubernetes Clusters](#eks-vs-diy-kubernetes-clusters)
 
-4. [Deploying Applications on EKS](#deploying-applications-on-eks)
-   - 4.1 [Containerizing Applications with Docker](#containerizing-applications-with-docker)
-   - 4.2 [Writing Kubernetes Deployment YAMLs](#writing-kubernetes-deployment-yamls)
-   - 4.3 [Deploying Applications to EKS: Step-by-step Guide](#deploying-applications-to-eks-step-by-step-guide)
+2. [Preparing Your AWS Environment](#preparing-your-aws-environment)  
+   - 2.1 [Creating AWS Account & IAM Users](#creating-aws-account--iam-users)  
+   - 2.2 [Installing and Configuring AWS CLI & kubectl](#installing-and-configuring-aws-cli--kubectl)  
+   - 2.3 [Networking and Security Group Setup](#networking-and-security-group-setup)
 
-## Understanding Kubernetes Fundamentals
+3. [EKS Cluster Deployment](#eks-cluster-deployment)  
+   - 3.1 [Creating Cluster Using AWS Console](#creating-cluster-using-aws-console)  
+   - 3.2 [Creating Cluster Using AWS CLI](#creating-cluster-using-aws-cli)  
+   - 3.3 [Cluster Authentication Process](#cluster-authentication-process)
 
-### 1.1 EKS vs. Self-Managed Kubernetes: Pros and Cons
+4. [Deploying Apps to EKS](#deploying-apps-to-eks)  
+   - 4.1 [Building Docker Images](#building-docker-images)  
+   - 4.2 [Creating Kubernetes YAML Files](#creating-kubernetes-yaml-files)  
+   - 4.3 [Step-by-Step Deployment to EKS](#step-by-step-deployment-to-eks)
 
-1.1.1 EKS (Amazon Elastic Kubernetes Service)
-Pros:
+---
 
-    Managed Control Plane: EKS takes care of managing the Kubernetes control plane components, such as the API server, controller manager, and etcd. AWS handles upgrades, patches, and ensures high availability of the control plane.
+## 1. Kubernetes Essentials
 
-    Automated Updates: EKS automatically updates the Kubernetes version, eliminating the need for manual intervention and ensuring that the cluster stays up-to-date with the latest features and security patches.
+### 1.1 EKS vs. DIY Kubernetes Clusters
 
-    Scalability: EKS can automatically scale the Kubernetes control plane based on demand, ensuring the cluster remains responsive as the workload increases.
+#### Managed EKS
 
-    AWS Integration: EKS seamlessly integrates with various AWS services, such as AWS IAM for authentication and authorization, Amazon VPC for networking, and AWS Load Balancers for service exposure.
+**Advantages:**
 
-    Security and Compliance: EKS is designed to meet various security standards and compliance requirements, providing a secure and compliant environment for running containerized workloads.
+- AWS handles all control plane operations like API server maintenance and upgrades.
+- Seamless integration with IAM, CloudWatch, VPC, and other AWS services.
+- Built-in scaling, monitoring, and compliance features.
+- High availability and automated version updates.
 
-    Monitoring and Logging: EKS integrates with AWS CloudWatch for monitoring cluster health and performance metrics, making it easier to track and troubleshoot issues.
+**Drawbacks:**
 
-    Ecosystem and Community: Being a managed service, EKS benefits from continuous improvement, support, and contributions from the broader Kubernetes community.
+- Comes with a higher cost compared to self-hosted options.
+- Offers less flexibility and direct control over system internals.
 
-Cons:
+#### Self-Hosted Kubernetes on EC2
 
-    Cost: EKS is a managed service, and this convenience comes at a cost. Running an EKS cluster may be more expensive compared to self-managed Kubernetes, especially for large-scale deployments.
+**Advantages:**
 
-    Less Control: While EKS provides a great deal of automation, it also means that you have less control over the underlying infrastructure and some Kubernetes configurations.
+- Lower operational cost using EC2 pricing models.
+- Full access to configure and modify cluster infrastructure.
+- Supports experimental Kubernetes versions before they're available on EKS.
 
-1.1.2 Self-Managed Kubernetes on EC2 Instances
-Pros:
+**Drawbacks:**
 
-    Cost-Effective: Self-managed Kubernetes allows you to take advantage of EC2 spot instances and reserved instances, potentially reducing the overall cost of running Kubernetes clusters.
+- Requires manual setup, updates, and scaling efforts.
+- Lacks built-in automation, increasing potential for misconfigurations.
 
-    Flexibility: With self-managed Kubernetes, you have full control over the cluster's configuration and infrastructure, enabling customization and optimization for specific use cases.
+---
 
-    EKS-Compatible: Self-managed Kubernetes on AWS can still leverage various AWS services and features, enabling integration with existing AWS resources.
+## 2. Preparing Your AWS Environment
 
-    Experimental Features: Self-managed Kubernetes allows you to experiment with the latest Kubernetes features and versions before they are officially supported by EKS.
+### 2.1 Creating AWS Account & IAM Users
 
-Cons:
+- Sign up on [aws.amazon.com](https://aws.amazon.com/).
+- Verify email, add billing information, and log in to the **AWS Console**.
+- (Optional) Enable **Multi-Factor Authentication (MFA)** for added security.
+- Create IAM users with console or programmatic access, and assign necessary permissions using groups or policies.
+- Store generated access keys securely.
 
-    Complexity: Setting up and managing a self-managed Kubernetes cluster can be complex and time-consuming, especially for those new to Kubernetes or AWS.
+---
 
-    Maintenance Overhead: Self-managed clusters require manual management of Kubernetes control plane updates, patches, and high availability.
+### 2.2 Installing and Configuring AWS CLI & kubectl
 
-    Scaling Challenges: Scaling the control plane of a self-managed cluster can be challenging, and it requires careful planning to ensure high availability during scaling events.
+1. **Install AWS CLI**  
+   - Download for your OS via [AWS CLI Quickstart Guide](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
-    Security and Compliance: Self-managed clusters may require additional effort to implement best practices for security and compliance compared to EKS, which comes with some built-in security features.
+2. **Configure AWS CLI**  
+   Run the following and enter your IAM credentials:
+   ```bash
+   aws configure
+   ```
 
-    Lack of Automation: Self-managed Kubernetes requires more manual intervention and scripting for certain operations, which can increase the risk of human error.
+3. **Install kubectl**  
+   - Instructions for various platforms: [Install kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
 
-## Setting up your AWS Environment for EKS
+4. **Connect kubectl to EKS**  
+   - Use this command to set up your kubeconfig:
+   ```bash
+   aws eks update-kubeconfig --name your-cluster-name
+   ```
 
-Sure! Let's go into detail for each subsection:
+5. **Verify Setup**  
+   ```bash
+   kubectl get nodes
+   ```
 
-## 2.1 Creating an AWS Account and Setting up IAM Users
+---
 
-Creating an AWS account is the first step to access and utilize AWS services, including Amazon Elastic Kubernetes Service (EKS). Here's a step-by-step guide to creating an AWS account and setting up IAM users:
+### 2.3 Networking and Security Group Setup
 
-1. **Create an AWS Account**:
-   - Go to the AWS website (https://aws.amazon.com/) and click on the "Create an AWS Account" button.
-   - Follow the on-screen instructions to provide your email address, password, and required account details.
-   - Enter your payment information to verify your identity and set up billing.
-
-2. **Access AWS Management Console**:
-   - After creating the account, you will receive a verification email. Follow the link in the email to verify your account.
-   - Log in to the AWS Management Console using your email address and password.
-
-3. **Set up Multi-Factor Authentication (MFA)** (Optional but recommended):
-   - Once you are logged in, set up MFA to add an extra layer of security to your AWS account. You can use MFA with a virtual MFA device or a hardware MFA device.
-
-4. **Create IAM Users**:
-   - Go to the IAM (Identity and Access Management) service in the AWS Management Console.
-   - Click on "Users" in the left-hand navigation pane and then click on "Add user."
-   - Enter a username for the new IAM user and select the access type (Programmatic access, AWS Management Console access, or both).
-   - Choose the permissions for the IAM user by adding them to one or more IAM groups or attaching policies directly.
-   - Optionally, set permissions boundary, tags, and enable MFA for the IAM user.
-
-5. **Access Keys (for Programmatic Access)**:
-   - If you selected "Programmatic access" during user creation, you will receive access keys (Access Key ID and Secret Access Key).
-   - Store these access keys securely, as they will be used to authenticate API requests made to AWS services.
-
-## 2.2 Configuring the AWS CLI and kubectl
-
-With IAM users set up, you can now configure the AWS CLI and kubectl on your local machine to interact with AWS services and EKS clusters:
-
-1. **Installing the AWS CLI**:
-   - Download and install the AWS CLI on your local machine. You can find installation instructions for various operating systems [here](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html).
-
-2. **Configuring AWS CLI Credentials**:
-   - Open a terminal or command prompt and run the following command:
-     ```
-     aws configure
-     ```
-   - Enter the access key ID and secret access key of the IAM user you created earlier.
-   - Choose a default region and output format for AWS CLI commands.
-
-3. **Installing kubectl**:
-   - Install kubectl on your local machine. Instructions can be found [here](https://kubernetes.io/docs/tasks/tools/install-kubectl/).
-
-4. **Configuring kubectl for EKS**:
-   - Once kubectl is installed, you need to configure it to work with your EKS cluster.
-   - In the AWS Management Console, go to the EKS service and select your cluster.
-   - Click on the "Config" button and follow the instructions to update your kubeconfig file. Alternatively, you can use the AWS CLI to update the kubeconfig file:
-     ```
-     aws eks update-kubeconfig --name your-cluster-name
-     ```
-   - Verify the configuration by running a kubectl command against your EKS cluster:
-     ```
-     kubectl get nodes
-     ```
-
-## 2.3 Preparing Networking and Security Groups for EKS
-
-Before launching an EKS cluster, you need to prepare the networking and security groups to ensure proper communication and security within the cluster:
-
-1. **Creating an Amazon VPC (Virtual Private Cloud)**:
-   - Go to the AWS Management Console and navigate to the VPC service.
-   - Click on "Create VPC" and enter the necessary details like VPC name, IPv4 CIDR block, and subnets.
-   - Create public and private subnets to distribute resources in different availability zones.
-
-Sure! Let's go into detail for each of the points:
-
-2. **Configuring Security Groups**
-
-**Security Groups** are a fundamental aspect of Amazon Web Services (AWS) that act as virtual firewalls for your AWS resources, including Amazon Elastic Kubernetes Service (EKS) clusters. Security Groups control inbound and outbound traffic to and from these resources based on rules you define. Here's a step-by-step guide on configuring Security Groups for your EKS cluster:
-
-1. **Create a Security Group**:
-   - Go to the AWS Management Console and navigate to the Amazon VPC service.
-   - Click on "Security Groups" in the left-hand navigation pane.
-   - Click on "Create Security Group."
-   - Provide a name and description for the Security Group.
-   - Select the appropriate VPC for the Security Group.
-
-2. **Inbound Rules**:
-   - Define inbound rules to control incoming traffic to your EKS worker nodes.
-   - By default, all inbound traffic is denied unless you explicitly allow it.
-   - Common inbound rules include allowing SSH (port 22) access for administrative purposes and allowing ingress traffic from specific CIDR blocks or Security Groups.
-
-3. **Outbound Rules**:
-   - Define outbound rules to control the traffic leaving your EKS worker nodes.
-   - By default, all outbound traffic is allowed unless you explicitly deny it.
-   - For security purposes, you can restrict outbound traffic to specific destinations or ports.
-
-4. **Security Group IDs**:
-   - After creating the Security Group, you'll receive a Security Group ID. This ID will be used when launching your EKS worker nodes.
-
-5. **Attach Security Group to EKS Worker Nodes**:
-   - When launching the EKS worker nodes, specify the Security Group ID in the launch configuration. This associates the Security Group with the worker nodes, allowing them to communicate based on the defined rules.
-
-Configuring Security Groups ensures that only the necessary traffic is allowed to and from your EKS worker nodes, enhancing the security of your EKS cluster.
-
-3. **Setting Up Internet Gateway (IGW)**
-
-An **Internet Gateway (IGW)** is a horizontally scaled, redundant, and highly available AWS resource that allows communication between your VPC and the internet. To enable EKS worker nodes to access the internet for tasks like pulling container images, you need to set up an Internet Gateway in your VPC. Here's how to do it:
-
-1. **Create an Internet Gateway**:
-   - Go to the AWS Management Console and navigate to the Amazon VPC service.
-   - Click on "Internet Gateways" in the left-hand navigation pane.
-   - Click on "Create Internet Gateway."
-   - Provide a name for the Internet Gateway and click "Create Internet Gateway."
-
-2. **Attach Internet Gateway to VPC**:
-   - After creating the Internet Gateway, select the Internet Gateway in the list and click on "Attach to VPC."
-   - Choose the VPC to which you want to attach the Internet Gateway and click "Attach."
-
-3. **Update Route Tables**:
-   - Go to "Route Tables" in the Amazon VPC service.
-   - Identify the Route Table associated with the private subnets where your EKS worker nodes will be deployed.
-   - Edit the Route Table and add a route with the destination `0.0.0.0/0` (all traffic) and the Internet Gateway ID as the target.
-
-By setting up an Internet Gateway and updating the Route Tables, you provide internet access to your EKS worker nodes, enabling them to interact with external resources like container registries and external services.
-
-4. **Configuring IAM Policies**
-
-**Identity and Access Management (IAM)** is a service in AWS that allows you to manage access to AWS resources securely. IAM policies define permissions that specify what actions are allowed or denied on specific AWS resources. For your EKS cluster, you'll need to configure IAM policies to grant necessary permissions to your worker nodes and other resources. Here's how to do it:
-
-1. **Create a Custom IAM Policy**:
-   - Go to the AWS Management Console and navigate to the IAM service.
-   - Click on "Policies" in the left-hand navigation pane.
-   - Click on "Create policy."
-   - Choose "JSON" as the policy language and define the permissions required for your EKS cluster. For example, you might need permissions for EC2 instances, Auto Scaling, Elastic Load Balancing, and accessing ECR (Elastic Container Registry).
-
-2. **Attach the IAM Policy to IAM Roles**:
-   - Go to "Roles" in the IAM service and select the IAM role that your EKS worker nodes will assume.
-   - Click on "Attach policies" and search for the custom IAM policy you created in the previous step.
-   - Attach the policy to the IAM role.
-
-3. **Update EKS Worker Node Launch Configuration**:
-   - When launching your EKS worker nodes, specify the IAM role ARN (Amazon Resource Name) of the IAM role that includes the necessary IAM policy.
-   - The IAM role allows the worker nodes to authenticate with the EKS cluster and access AWS resources based on the permissions defined in the attached IAM policy.
-
-By configuring IAM policies and associating them with IAM roles, you grant specific permissions to your EKS worker nodes, ensuring they can interact with AWS resources as needed while maintaining security and access control.
-
-By completing these steps, your AWS environment is ready to host an Amazon EKS cluster. You can proceed with creating an EKS cluster using the AWS Management Console or AWS CLI as described in section 3.
-
+#### Create VPC & Subnets
+
+- Use **Amazon VPC** to create a new Virtual Private Cloud.
+- Set up public and private subnets across availability zones.
+
+#### Configure Security Groups
+
+1. **Create Security Group** under VPC
+2. **Inbound Rules**: Allow ports such as SSH (22), or application ports
+3. **Outbound Rules**: Default allow-all or restrict as needed
+4. **Attach Security Group** to worker node EC2 instances
+
+#### Set Up Internet Gateway
+
+1. Create an **Internet Gateway** in the VPC service
+2. Attach the gateway to your VPC
+3. Update Route Tables to route internet-bound traffic (`0.0.0.0/0`) through the IGW
+
+#### IAM Policy Setup
+
+1. Create a **custom IAM policy** to allow required services (ECR, EC2, ELB, Auto Scaling)
+2. Attach the policy to a new or existing IAM role
+3. Use this IAM role when launching EKS worker nodes
+
+---
+
+## 3. EKS Cluster Deployment
+
+### 3.1 Creating Cluster Using AWS Console
+
+1. Go to the **Amazon EKS** dashboard.
+2. Click on **“Create Cluster”** and fill out details like cluster name, role ARN, Kubernetes version, and VPC settings.
+3. Wait for the control plane to become active.
+
+### 3.2 Creating Cluster Using AWS CLI
+
+Use this command to create a cluster:
+```bash
+eksctl create cluster \
+  --name demo-cluster \
+  --region your-region \
+  --nodegroup-name demo-nodes \
+  --node-type t3.medium \
+  --nodes 2 \
+  --nodes-min 1 \
+  --nodes-max 3 \
+  --managed
+```
+
+### 3.3 Cluster Authentication Process
+
+- Ensure your kubeconfig file is updated (as shown in 2.2).
+- Test access:
+```bash
+kubectl get svc
+```
+
+---
+
+## 4. Deploying Apps to EKS
+
+### 4.1 Building Docker Images
+
+1. Write a **Dockerfile** for your app.
+2. Build the image:
+   ```bash
+   docker build -t your-image-name .
+   ```
+3. Push to ECR or Docker Hub:
+   ```bash
+   docker tag your-image-name:latest <your-repo-uri>
+   docker push <your-repo-uri>
+   ```
+
+---
+
+### 4.2 Creating Kubernetes YAML Files
+
+Prepare the following YAML manifests:
+
+- **Deployment**: Define replicas, image, container ports
+- **Service**: Expose your app using ClusterIP, NodePort, or LoadBalancer
+- **ConfigMap/Secret** (optional): For environment configuration
+
+Example `deployment.yaml`:
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: my-app
+  template:
+    metadata:
+      labels:
+        app: my-app
+    spec:
+      containers:
+      - name: my-app
+        image: <your-image>
+        ports:
+        - containerPort: 3000
+```
+
+---
+
+### 4.3 Step-by-Step Deployment to EKS
+
+1. **Apply Deployment**:
+   ```bash
+   kubectl apply -f deployment.yaml
+   ```
+
+2. **Apply Service**:
+   ```bash
+   kubectl apply -f service.yaml
+   ```
+
+3. **Monitor**:
+   ```bash
+   kubectl get all
+   ```
+
+4. Access your app via the **LoadBalancer URL** (if used).
+
+---
+
+## Conclusion
+
+This project is a complete end-to-end guide on deploying containerized applications with Kubernetes using **Amazon EKS**. From AWS setup to cluster provisioning and deploying real apps, it serves as a beginner-friendly yet production-ready reference.
